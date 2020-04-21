@@ -21,23 +21,27 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     private var shouldClearBottomText = true
     private weak var activeTextField: UITextField!
     
+    let memeTextAttributes: [NSAttributedString.Key: Any] = [
+        NSAttributedString.Key.strokeColor: UIColor.black,
+        NSAttributedString.Key.foregroundColor: UIColor.white,
+        NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
+        NSAttributedString.Key.strokeWidth:  NSNumber(floatLiteral: -3.0)
+    ]
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        topTextField.isHidden = true
-        bottomTextField.isHidden = true
-        let memeTextAttributes: [NSAttributedString.Key: Any] = [
-            NSAttributedString.Key.strokeColor: UIColor.black,
-            NSAttributedString.Key.foregroundColor: UIColor.white,
-            NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
-            NSAttributedString.Key.strokeWidth:  NSNumber(floatLiteral: -3.0)
-        ]
-        topTextField.defaultTextAttributes = memeTextAttributes
-        bottomTextField.defaultTextAttributes = memeTextAttributes
-        topTextField.textAlignment = .center
-        bottomTextField.textAlignment = .center
-        topTextField.delegate = self
-        bottomTextField.delegate = self
+        styleTextField(topTextField, Constants.TOP_TEXTFIELD_DEFAULT)
+        styleTextField(bottomTextField, Constants.BOTTOM_TEXTFIELD_DEFAULT)
     }
+    
+    func styleTextField(_ textField: UITextField, _ defaultText: String) {
+        textField.text = defaultText
+        textField.defaultTextAttributes = memeTextAttributes
+        textField.textAlignment = .center
+        textField.delegate = self
+        textField.isHidden = true
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
         shareButton.isEnabled = selectedImagePreview.image != nil
@@ -82,8 +86,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             selectedImagePreview.image = selectedImage
             topTextField.isHidden = false
             bottomTextField.isHidden = false
-            topTextField.text = "TOP"
-            bottomTextField.text = "BOTTOM"
             shareButton.isEnabled = true
         }
         picker.dismiss(animated: true)
@@ -123,13 +125,17 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBAction func share(){
         let memedImage = generateMemedImage()
         let controller = UIActivityViewController(activityItems: [memedImage], applicationActivities: nil)
-        present(controller, animated: true){
-            self.save(memedImage)
+        controller.completionWithItemsHandler = { [weak self] type, completed, items, error in
+            if completed {
+                self?.save(memedImage)
+            }
+            controller.dismiss(animated: true, completion: nil)
         }
+        present(controller, animated: true)
     }
     
     func save(_ memedImage: UIImage){
-        let meme = Meme(topText: topTextField.text!, bottomText: bottomTextField.text!, originalImage: selectedImagePreview.image!, memedImage: memedImage)
+        let _ = Meme(topText: topTextField.text!, bottomText: bottomTextField.text!, originalImage: selectedImagePreview.image!, memedImage: memedImage)
     }
     
     func generateMemedImage() -> UIImage {
@@ -147,12 +153,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         selectedImagePreview.image = nil
         topTextField.isHidden = true
         bottomTextField.isHidden = true
+        topTextField.text = Constants.TOP_TEXTFIELD_DEFAULT
+        bottomTextField.text = Constants.BOTTOM_TEXTFIELD_DEFAULT
     }
  }
-
-struct Meme {
-    let topText: String
-    let bottomText: String
-    let originalImage: UIImage
-    let memedImage: UIImage
-}
